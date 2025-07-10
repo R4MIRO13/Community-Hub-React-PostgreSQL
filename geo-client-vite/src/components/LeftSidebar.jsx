@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { Box, Paper, Typography, Divider, Button, MenuItem, Select, InputLabel, FormControl } from "@mui/material";
 import LayerToggleControls from "./LayerToggleControls";
+import MapLibreDraw from "./MapLibreDraw";
 
 const LeftSidebar = (props) => {
-  // Add local state for draw mode
+  // Add local state for draw mode and drawn polygon
   const [drawMode, setDrawMode] = useState(false);
+  const [drawnFeatures, setDrawnFeatures] = useState([]);
 
   // Destructure location filter props
   const {
@@ -119,6 +121,32 @@ const LeftSidebar = (props) => {
       <Divider sx={{ my: 1 }} />
       <Box sx={{ flex: 1, overflowY: 'auto', p: 2, pt: 0 }}>
         <LayerToggleControls {...props} />
+      </Box>
+      <Box sx={{ p: 2 }}>
+        <Button
+          variant={drawMode ? "contained" : "outlined"}
+          color="primary"
+          size="small"
+          sx={{ mb: 2, fontSize: 13, textTransform: 'none' }}
+          onClick={() => setDrawMode((prev) => !prev)}
+        >
+          {drawMode ? "Exit Polygon Draw" : "Draw Polygon (MapLibre)"}
+        </Button>
+        {drawMode && (
+          <MapLibreDraw
+            onDrawnFeatures={setDrawnFeatures}
+          />
+        )}
+        {drawnFeatures.length > 0 && (
+          <Box sx={{ mt: 2, p: 1, bgcolor: "#f8f9fa", borderRadius: 1 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600 }}>
+              Drawn Polygon GeoJSON:
+            </Typography>
+            <pre style={{ fontSize: 12, margin: 0 }}>
+              {JSON.stringify(drawnFeatures, null, 2)}
+            </pre>
+          </Box>
+        )}
       </Box>
     </Paper>
   );

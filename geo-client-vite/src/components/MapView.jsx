@@ -1,6 +1,7 @@
-import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, FeatureGroup } from "react-leaflet";
 import L from "leaflet";
-import RectangleDrawControl from "./PolygonDrawControl";
+import { EditControl } from "react-leaflet-draw";
+import "leaflet-draw/dist/leaflet.draw.css";
 
 const MapView = ({ 
   countyData, 
@@ -14,6 +15,19 @@ const MapView = ({
   onDrawCancel,
   drawnPolygon
 }) => {
+  // Handler for when a polygon is created
+  const _onCreated = (e) => {
+    if (e.layerType === "polygon" || e.layerType === "rectangle") {
+      const geojson = e.layer.toGeoJSON();
+      onPolygonDrawn && onPolygonDrawn(geojson);
+    }
+  };
+
+  // Handler for when drawing is cancelled (deleted)
+  const _onDeleted = (e) => {
+    onDrawCancel && onDrawCancel();
+  };
+
   return (
     <MapContainer
       bounds={[
@@ -26,19 +40,29 @@ const MapView = ({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution="&copy; OpenStreetMap contributors"
       />
-      
-      {/* Rectangle Drawing Control */}
-      <RectangleDrawControl
-        active={isDrawingPolygon}
-        onRectangleDrawn={onPolygonDrawn}
-        onCancel={onDrawCancel}
-      />
-      
-      {/* Drawn Rectangle Display */}
-      {drawnPolygon && (
-        <GeoJSON data={drawnPolygon} style={{ color: '#1976d2', weight: 2, fillOpacity: 0.1 }} />
-      )}
-      
+      <FeatureGroup>
+        <EditControl
+          position="topright"
+          onCreated={_onCreated}
+          onDeleted={_onDeleted}
+          draw={{
+            polygon: true, // Always show polygon tool
+            rectangle: false,
+            polyline: false,
+            circle: false,
+            marker: false,
+            circlemarker: false
+          }}
+          edit={{
+            remove: true,
+            edit: false
+          }}
+        />
+        {/* Drawn Polygon Display */}
+        {drawnPolygon && (
+          <GeoJSON data={drawnPolygon} style={{ color: '#1976d2', weight: 2, fillOpacity: 0.1 }} />
+        )}
+      </FeatureGroup>
       {/* County Boundaries Layer */}
       {countyData && (
         <GeoJSON
