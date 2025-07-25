@@ -112,13 +112,35 @@ const MapView = ({
             }}
             onEachFeature={(feature, layer) => {
               const props = feature.properties;
-              let popupContent = "<table style='font-size: 12px;'>";
+              let popupContent = `
+                <div style="max-height: 200px; overflow-y: auto; font-size: 12px; font-family: Arial, sans-serif; border: 1px solid #ccc; padding: 4px;">
+                  <table style="border-collapse: collapse; width: 100%;">
+                    <thead>
+                      <tr style="background: #f0f0f0;">
+                        <th style="text-align: left; padding: 4px; border-bottom: 1px solid #ccc;">Property</th>
+                        <th style="text-align: left; padding: 4px; border-bottom: 1px solid #ccc;">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+              `;
+
               for (const key in props) {
-                if (key !== "geom") {
-                  popupContent += `<tr><th style='text-align: left; padding: 2px 8px 2px 0;'>${key}</th><td style='padding: 2px;'>${props[key]}</td></tr>`;
+                if (key !== "geom" && key !== "vpa_decile" && key !== "vpa_subdecile") {
+                  popupContent += `
+                    <tr>
+                      <td style="padding: 4px; border-bottom: 1px solid #eee;">${key}</td>
+                      <td style="padding: 4px; border-bottom: 1px solid #eee;">${props[key]}</td>
+                    </tr>
+                  `;
                 }
               }
-              popupContent += "</table>";
+
+              popupContent += `
+                    </tbody>
+                  </table>
+                </div>
+              `;
+
               layer.bindPopup(popupContent);
             }}
           />

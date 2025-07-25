@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import LayersIcon from '@mui/icons-material/Layers';
+import FolderIcon from '@mui/icons-material/Folder';
+import WavesIcon from '@mui/icons-material/Waves';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -148,9 +150,9 @@ const LayerToggleControls = ({
                       {isLand ? (
                         <LayersIcon fontSize="small" style={{ color: "#1976d2" }} />
                       ) : isFood ? (
-                        <InsertDriveFileIcon fontSize="small" style={{ color: "#e67e22" }} />
+                        <FolderIcon fontSize="small" style={{ color: "#e67e22" }} />
                       ) : isSlr ? (
-                        <InsertDriveFileIcon fontSize="small" style={{ color: "#007bff" }} />
+                        <WavesIcon fontSize="small" style={{ color: "pink" }} />
                       ) : (
                         <InsertDriveFileIcon fontSize="small" style={{ color: "#757575" }} />
                       )}

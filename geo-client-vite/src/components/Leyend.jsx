@@ -114,7 +114,7 @@ export default function Legend({
           <>
             {[...Array(10)].map((_, i) => {
               const decile = 10 - i;
-              const showButton = decile >= 1 && decile <= 5;
+              const showButton = decile >= 1 && decile <= 10;
 
               return (
                 <LegendRow

@@ -217,29 +217,34 @@ export const uploadLandVPA = async (req, res) => {
       return res.status(200).json({ message: `No VPA data > 0 for ${municipalityRaw}` });
     }
 
-    let currentPercent = 19.25;
+    let lowestDecileBreak = 1; // or 0.75 or any value you choose
+    let totalDeciles = 10;
+    let highestDecileBreak = (2 * 100 / totalDeciles) - lowestDecileBreak;
+    let decrement = (highestDecileBreak - lowestDecileBreak) / (totalDeciles - 1);
+
+    let currentPercent = highestDecileBreak;
     let cumulative = 0;
     const decileBreakpoints = [];
 
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= totalDeciles; i++) {
       cumulative += currentPercent;
       const index = Math.floor((cumulative / 100) * total) - 1;
-      const rawValue = i === 10
+      const rawValue = i === totalDeciles
         ? vpaRows[vpaRows.length - 1]
         : vpaRows[Math.max(0, Math.min(index, total - 1))];
       const rounded = Math.ceil(rawValue / 100) * 100;
-      decileBreakpoints.push(rounded);
-      if (i < 10) currentPercent -= 92.5 / 45;
-    }
 
-    for (let i = 0; i < 10; i++) {
+      decileBreakpoints.push(rounded);
+
       await pool.query(
         `INSERT INTO vpa_decile_breakpoints (municipality_id, decile, max_vpa)
         VALUES ($1, $2, $3)
         ON CONFLICT (municipality_id, decile)
         DO UPDATE SET max_vpa = EXCLUDED.max_vpa`,
-        [municipalityId, i + 1, decileBreakpoints[i]]
+        [municipalityId, i, rounded]
       );
+
+      if (i < totalDeciles) currentPercent -= decrement;
     }
 
     await pool.query(
@@ -259,7 +264,7 @@ export const uploadLandVPA = async (req, res) => {
       [municipalityId]
     );
 
-    for (let decile = 1; decile <= 5; decile++) {
+    for (let decile = 1; decile <= 10; decile++) {
       const lower = decile === 1 ? 0 : decileBreakpoints[decile - 2];
       const upper = decileBreakpoints[decile - 1];
 
@@ -299,31 +304,65 @@ export const uploadLandVPA = async (req, res) => {
         continue;
       }
 
-      let subCurrentPercent = 12.5;
-      let subCumulative = 0;
       const subdecileBreakpoints = [];
 
-      for (let subdecile = 1; subdecile <= 10; subdecile++) {
-        subCumulative += subCurrentPercent;
-        let index = Math.floor((subCumulative / 100) * subTotal) - 1;
-        index = Math.max(0, Math.min(index, subTotal - 1));
+      if (decile < 10) {
+        // Deciles 1-9: uniform 10% split
+        let subCumulative = 0;
+        const subCurrentPercent = 10;
 
-        const rawValue = subdecile === 10
-          ? subRows[subTotal - 1]
-          : subRows[index];
+        for (let subdecile = 1; subdecile <= 10; subdecile++) {
+          subCumulative += subCurrentPercent;
+          let index = Math.floor((subCumulative / 100) * subTotal) - 1;
+          index = Math.max(0, Math.min(index, subTotal - 1));
 
-        const rounded = Math.ceil(rawValue / 100) * 100;
-        subdecileBreakpoints.push(rounded);
+          const rawValue = subdecile === 10
+            ? subRows[subTotal - 1]
+            : subRows[index];
 
-        await pool.query(
-          `INSERT INTO vpa_subdecile_breakpoints (municipality_id, decile, subdecile, max_vpa)
-          VALUES ($1, $2, $3, $4)
-          ON CONFLICT (municipality_id, decile, subdecile)
-          DO UPDATE SET max_vpa = EXCLUDED.max_vpa`,
-          [municipalityId, decile, subdecile, rounded]
-        );
+          const rounded = Math.ceil(rawValue / 100) * 100;
+          subdecileBreakpoints.push(rounded);
 
-        if (subdecile < 10) subCurrentPercent -= 25 / 45;
+          await pool.query(
+            `INSERT INTO vpa_subdecile_breakpoints (municipality_id, decile, subdecile, max_vpa)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (municipality_id, decile, subdecile)
+            DO UPDATE SET max_vpa = EXCLUDED.max_vpa`,
+            [municipalityId, decile, subdecile, rounded]
+          );
+        }
+      } else {
+        // Decil 10: progressive decrement from 17.5% to 2.5%
+        const lowestSubdecileBreak = 2.5;
+        const totalSubdeciles = 10;
+        const highestSubdecileBreak = (2 * 100 / totalSubdeciles) - lowestSubdecileBreak;
+        const decrement = (highestSubdecileBreak - lowestSubdecileBreak) / (totalSubdeciles - 1);
+
+        let subCurrentPercent = highestSubdecileBreak;
+        let subCumulative = 0;
+
+        for (let subdecile = 1; subdecile <= 10; subdecile++) {
+          subCumulative += subCurrentPercent;
+          let index = Math.floor((subCumulative / 100) * subTotal) - 1;
+          index = Math.max(0, Math.min(index, subTotal - 1));
+
+          const rawValue = subdecile === 10
+            ? subRows[subTotal - 1]
+            : subRows[index];
+
+          const rounded = Math.ceil(rawValue / 100) * 100;
+          subdecileBreakpoints.push(rounded);
+
+          await pool.query(
+            `INSERT INTO vpa_subdecile_breakpoints (municipality_id, decile, subdecile, max_vpa)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (municipality_id, decile, subdecile)
+            DO UPDATE SET max_vpa = EXCLUDED.max_vpa`,
+            [municipalityId, decile, subdecile, rounded]
+          );
+
+          if (subdecile < 10) subCurrentPercent -= decrement;
+        }
       }
 
       await pool.query(
