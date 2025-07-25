@@ -18,11 +18,8 @@ const LayerToggleControls = ({
   showSlr,
   setShowSlr,
   uploadedFiles,
-  API_URL,
-  selectedCounty
+  API_URL
 }) => {
-  console.log("uploadedFiles:", uploadedFiles);
-
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     landvpa: true,
